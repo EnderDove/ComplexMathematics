@@ -200,11 +200,16 @@ namespace ComplexMathematics
             return 1 / result;
         }
 
+        public static Complex Beta(Complex a, Complex b)
+        {
+            return Gamma(a) * Gamma(b) / Gamma(a+b);
+        }
+
         public static Complex Zeta(Complex value)
         {
             if (value == Zero) return -0.5;
             if (value == RealOne) return new(double.PositiveInfinity, 0);
-            if (value._real <= 0)
+            if (value._real < 0.5)
                 return Pow(2, value) * Pow(PI, value - 1) * Sin(0.5 * PI * value) * Gamma(1 - value) * Zeta(1 - value);
             var sum = Zero;
             for (int k = 1; k < 1000; k++)
@@ -289,24 +294,46 @@ namespace ComplexMathematics
         #region Transforms
         public static Complex[] FastFourierTransform(Complex[] input)
         {
-            var n = input.Length;
-            if (n <= 1) return input;
-            var even = new Complex[n / 2];
-            var odd = new Complex[(n + 1) / 2];
-            for (int k = 0; k < n / 2; k++)
-            {
-                even[k] = input[2 * k];
-                odd[k] = input[2 * k + 1];
-            }
+            var pointsCount = input.Length;
+            if (pointsCount <= 1) return input;
+            var even = input.Where((value, index) => index % 2 == 0).ToArray();
+            var odd = input.Where((value, index) => index % 2 != 0).ToArray();
             even = FastFourierTransform(even);
             odd = FastFourierTransform(odd);
-            for (int k = 0; k < n / 2; k++)
+            var result = new Complex[pointsCount];
+            for (int frequency = 0; frequency < pointsCount / 2; frequency++)
             {
-                var value = Exp(new(0, -Math.Tau * k / n)) * odd[k];
-                input[k] = even[k] + value;
-                input[k + (n + 1) / 2] = even[k] - value;
+                var value = FromPolarCoordinates(1, -Math.Tau * frequency / pointsCount) * odd[frequency];
+                result[frequency] = even[frequency] + value;
+                result[frequency + pointsCount / 2] = even[frequency] - value;
             }
-            return input;
+            return result;
+        }
+
+        public static Complex[] DiscreteFourierTransform(Complex[] input) //Better Use FFT for 2th powers
+        {
+            int pointsCount = input.Length;
+            var result = new Complex[pointsCount];
+            for (int point = 0; point < pointsCount; point++)
+            {
+                Complex coefficient = 0;
+                for (int frequency = 0; frequency < pointsCount; frequency++)
+                    coefficient += input[frequency] * FromPolarCoordinates(1, -Math.Tau * frequency * point / pointsCount);
+                result[point] = coefficient;
+            }
+            return result;
+        }
+
+        public static Complex[] InverseFastFourierTransform(Complex[] input)
+        {
+            var pointsCount = input.Length;
+            var result = new Complex[pointsCount];
+            for (int i = 0; i < pointsCount; i++)
+                result[i] = result[i].Conjugated;
+            result = FastFourierTransform(result);
+            for (int i = 0; i < pointsCount; i++)
+                result[i] = result[i].Conjugated;
+            return result;
         }
         #endregion
 

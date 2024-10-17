@@ -8,11 +8,11 @@
 
         public Complex[] EvaluatePoints(int pointCount)
         {
-            var points = new Complex[pointCount + 1];
+            var points = new Complex[pointCount];
             double length = EndPoint - StartPoint;
-            for (int i = 0; i < pointCount + 1; i++)
+            for (int i = 0; i < pointCount; i++)
             {
-                var t = StartPoint + (double)i / pointCount * length;
+                var t = StartPoint + i / (pointCount - 1.0) * length;
                 points[i] = ParametricFunction(t);
             }
             return points;
@@ -21,11 +21,11 @@
         {
             var job = new Task<Complex[]>(()=>
             {
-                var points = new Complex[pointCount + 1];
+                var points = new Complex[pointCount];
                 double length = EndPoint - StartPoint;
-                Parallel.For(0, pointCount + 1, (int i) =>
+                Parallel.For(0, pointCount, (int i) =>
                 {
-                    var t = StartPoint + (double)i / pointCount * length;
+                    var t = StartPoint + i / (pointCount - 1.0) * length;
                     points[i] = ParametricFunction(t);
                 });
                 return points;
