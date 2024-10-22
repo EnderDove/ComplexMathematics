@@ -202,7 +202,7 @@ namespace ComplexMathematics
 
         public static Complex Beta(Complex a, Complex b)
         {
-            return Gamma(a) * Gamma(b) / Gamma(a+b);
+            return Gamma(a) * Gamma(b) / Gamma(a + b);
         }
 
         public static Complex Zeta(Complex value)
@@ -213,7 +213,7 @@ namespace ComplexMathematics
                 return Pow(2, value) * Pow(PI, value - 1) * Sin(0.5 * PI * value) * Gamma(1 - value) * Zeta(1 - value);
             var sum = Zero;
             for (int k = 1; k < 1000; k++)
-                sum += k * (k + 1) / 2 * ((2 * k + 3 + value) / Pow(k + 1, value + 2) - (2*k - 1 - value) / Pow(k, value + 2));
+                sum += k * (k + 1) / 2 * ((2 * k + 3 + value) / Pow(k + 1, value + 2) - (2 * k - 1 - value) / Pow(k, value + 2));
             return sum / (value - 1);
         }
 
@@ -229,75 +229,25 @@ namespace ComplexMathematics
         }
         #endregion
 
-        #region ComplexAnalysis
-        public static Func<Complex, double> PartialDerivativeUx(Func<Complex, Complex> function)
-        {
-            return (Complex value) => (function(value + EpsilonForAnalysis)._real - function(value)._real) / EpsilonForAnalysis._real;
-        }
-
-        public static Func<Complex, double> PartialDerivativeUy(Func<Complex, Complex> function)
-        {
-            return (Complex value) => (function(value + EpsilonForAnalysis * ImaginaryOne)._real - function(value)._real) / EpsilonForAnalysis._real;
-        }
-
-        public static Func<Complex, double> PartialDerivativeVx(Func<Complex, Complex> function)
-        {
-            return (Complex value) => (function(value + EpsilonForAnalysis)._imaginary - function(value)._imaginary) / EpsilonForAnalysis._real;
-        }
-
-        public static Func<Complex, double> PartialDerivativeVy(Func<Complex, Complex> function)
-        {
-            return (Complex value) => (function(value + EpsilonForAnalysis * ImaginaryOne)._imaginary - function(value)._imaginary) / EpsilonForAnalysis._real;
-        }
-
-        public static Func<Complex, bool> IsDifferentiable(Func<Complex, Complex> function)
-        {
-            return (Complex point) => (Math.Abs(PartialDerivativeUx(function)(point) - PartialDerivativeVy(function)(point)) <= EpsilonForAnalysis._real * 2) &&
-                (Math.Abs(PartialDerivativeUy(function)(point) + PartialDerivativeVx(function)(point)) <= EpsilonForAnalysis._real * 2);
-        }
-
-        public static Func<Complex, Complex> Derivative(Func<Complex, Complex> function)
-        {
-            return (Complex value) => new(PartialDerivativeUx(function)(value), PartialDerivativeVx(function)(value));
-        }
-
-        public static Complex LineIntegralAlongCurve(Func<Complex, Complex> function, Curve curve, int pointsCount = 10_000)
-        {
-            var sum = Zero;
-            var points = curve.EvaluatePoints(pointsCount);
-            var resulst = curve.ApplyFunction(function).EvaluatePoints(pointsCount);
-            for (int i = 0; i < pointsCount; i++)
-                sum += resulst[i] * (points[i + 1] - points[i]);
-            return sum;
-        }
-
-        public static Task<Complex> LineIntegralAlongCurveAsync(Func<Complex, Complex> function, Curve curve, int pointsCount = 10_000)
-        {
-            var job = new Task<Complex>(() =>
-            {
-                var sum = Zero;
-                var points = curve.EvaluatePointsAsync(pointsCount);
-                points.Wait();
-                var resulst = curve.ApplyFunction(function).EvaluatePointsAsync(pointsCount);
-                resulst.Wait();
-                Parallel.For(0, pointsCount, (int i) =>
-                {
-                    sum += resulst.Result[i] * (points.Result[i + 1] - points.Result[i]);
-                });
-                return sum;
-            });
-            job.Start();
-            return job;
-        }
-        #endregion
-
         #region Transforms
+        /// <summary>
+        /// Fast Fourier Transform Algorithm with 0-padding for not 2-th power inputs.
+        /// </summary>
+        /// <returns> Complex[] with length of input array scaled to minimal power of 2 greater then k </returns>
         public static Complex[] FastFourierTransform(Complex[] input)
         {
-            var pointsCount = input.Length;
-            if (pointsCount <= 1) return input;
-            var even = input.Where((value, index) => index % 2 == 0).ToArray();
-            var odd = input.Where((value, index) => index % 2 != 0).ToArray();
+            var initialPointsCount = input.Length;
+            if (initialPointsCount <= 1) return input;
+            var pointsCount = (int)Math.Pow(2, (int)Math.Log2(initialPointsCount - 1) + 1);
+
+            var even = new Complex[pointsCount / 2];
+            var odd = new Complex[pointsCount / 2];
+            for (int i = 0; i < initialPointsCount / 2; i++)
+            {
+                even[i] = input[2 * i];
+                odd[i] = input[2 * i + 1];
+            }
+
             even = FastFourierTransform(even);
             odd = FastFourierTransform(odd);
             var result = new Complex[pointsCount];
@@ -310,7 +260,11 @@ namespace ComplexMathematics
             return result;
         }
 
-        public static Complex[] DiscreteFourierTransform(Complex[] input) //Better Use FFT for 2th powers
+        /// <summary>
+        /// Discrete Fourier Transform Algorithm. Always prefer to use FastFourierTransform.
+        /// </summary>
+        /// <returns> Complex[] with length of input array</returns>
+        public static Complex[] DiscreteFourierTransform(Complex[] input)
         {
             int pointsCount = input.Length;
             var result = new Complex[pointsCount];
@@ -324,6 +278,10 @@ namespace ComplexMathematics
             return result;
         }
 
+        /// <summary>
+        /// Inverse Fast Fourier Transform Algorithm with 0-padding for not 2-th power inputs.
+        /// </summary>
+        /// <returns> Complex[] with length of input array scaled to minimal power of 2 greater then k </returns>
         public static Complex[] InverseFastFourierTransform(Complex[] input)
         {
             var pointsCount = input.Length;
@@ -331,6 +289,22 @@ namespace ComplexMathematics
             for (int i = 0; i < pointsCount; i++)
                 result[i] = result[i].Conjugated;
             result = FastFourierTransform(result);
+            for (int i = 0; i < pointsCount; i++)
+                result[i] = result[i].Conjugated;
+            return result;
+        }
+
+        /// <summary>
+        /// Inverse Discrete Fourier Transform Algorithm. Always prefer to use InverseFastFourierTransform.
+        /// </summary>
+        /// <returns> Complex[] with length of input array</returns>
+        public static Complex[] InverseDiscreteFourierTransform(Complex[] input)
+        {
+            var pointsCount = input.Length;
+            var result = new Complex[pointsCount];
+            for (int i = 0; i < pointsCount; i++)
+                result[i] = result[i].Conjugated;
+            result = DiscreteFourierTransform(result);
             for (int i = 0; i < pointsCount; i++)
                 result[i] = result[i].Conjugated;
             return result;

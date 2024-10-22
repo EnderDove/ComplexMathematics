@@ -19,7 +19,7 @@
         }
         public Task<Complex[]> EvaluatePointsAsync(int pointCount)
         {
-            var job = new Task<Complex[]>(()=>
+            var job = new Task<Complex[]>(() =>
             {
                 var points = new Complex[pointCount];
                 double length = EndPoint - StartPoint;
@@ -39,14 +39,14 @@
             return new((double value) => function(ParametricFunction(value)), StartPoint, EndPoint);
         }
 
-        public static Curve CreateFromPolarCoordinates(Func<double, Complex> polarFunction, double startPoint, double endPoint)
+        public static Curve CreateFromPolarCoordinates(Func<double, double> polarFunction, double startPoint, double endPoint)
         {
             return new(ConvertToParametricFunction, startPoint, endPoint);
 
             Complex ConvertToParametricFunction(double phi)
             {
-                var value = (polarFunction(phi));
-                return new(value.Real * Math.Cos(phi), value.Imaginary * Math.Sin(phi));
+                var value = polarFunction(phi);
+                return new(value * Math.Cos(phi), value * Math.Sin(phi));
             }
         }
     }
