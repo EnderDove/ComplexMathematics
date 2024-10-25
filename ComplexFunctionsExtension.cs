@@ -1,5 +1,8 @@
 ﻿namespace ComplexMathematics
 {
+    /// <summary>
+    /// A class that provides extension methods for complex-valued functions.
+    /// </summary>
     public static class ComplexFunctionsExtension
     {
         #region Partial Derivatives

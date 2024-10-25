@@ -1,9 +1,16 @@
 ﻿using System.Globalization;
+using System.Numerics;
 
 namespace ComplexMathematics
 {
+    /// <summary>
+    /// A Class that provides Complex numbers and operations with them.
+    /// Contains <paramref name="real"/> and <paramref name="imaginary"/> parts of number represented by double Type.
+    /// </summary>
     [Serializable]
-    public readonly struct Complex(double real, double imaginary) : IEquatable<Complex>, IFormattable
+    public readonly struct Complex(double real, double imaginary) : IEquatable<Complex>, IFormattable, IAdditionOperators<Complex, Complex, Complex>,
+        IAdditiveIdentity<Complex, Complex>, IDecrementOperators<Complex>, IDivisionOperators<Complex, Complex, Complex>, IEqualityOperators<Complex, Complex, bool>,
+        IIncrementOperators<Complex>, IMultiplicativeIdentity<Complex, Complex>, IMultiplyOperators<Complex, Complex, Complex>, ISubtractionOperators<Complex, Complex, Complex>, IUnaryNegationOperators<Complex, Complex>
     {
         public double Real => _real;
         public double Imaginary => _imaginary;
@@ -17,7 +24,9 @@ namespace ComplexMathematics
 
         #region Constants
         public static Complex Zero => new(0, 0);
+        public static Complex AdditiveIdentity => Zero;
         public static Complex RealOne => new(1, 0);
+        public static Complex MultiplicativeIdentity => RealOne;
         public static Complex ImaginaryOne => new(0, 1);
         public static Complex EpsilonForAnalysis => new(0.00001d, 0);
         public static Complex EulersConstant => new(0.5772157, 0);
@@ -49,7 +58,7 @@ namespace ComplexMathematics
 
         public static implicit operator Complex(double value) => new(value, 0);
 
-        public static explicit operator Complex(System.Numerics.BigInteger value) => new((double)value, 0);
+        public static explicit operator Complex(BigInteger value) => new((double)value, 0);
 
         public static explicit operator Complex(decimal value) => new((double)value, 0);
 
@@ -153,7 +162,7 @@ namespace ComplexMathematics
 
         public static Complex Acosh(Complex value)
         {
-            return Log(value / ImaginaryOne + ImaginaryOne * Sqrt(RealOne + value * value));
+            return Log(ImaginaryOne * (-value + Sqrt(RealOne + value * value)));
         }
 
         public static Complex Tan(Complex value)
@@ -176,14 +185,14 @@ namespace ComplexMathematics
             return -0.5 * (Log(RealOne - value) - Log(RealOne + value));
         }
 
-        public static Complex Lerp(Complex first, Complex second, Complex factor)
+        public static Complex Lerp(Complex first, Complex second, double factor)
         {
             return first + (second - first) * factor;
         }
 
-        public static Complex InverseLerp(Complex first, Complex second, Complex value)
+        public static double InverseLerp(Complex first, Complex second, Complex value)
         {
-            return (first - value) / (first - second);
+            return ((first - value) / (first - second)).Real;
         }
 
         public static Complex SLerp(Complex first, Complex second, double factor)
@@ -194,7 +203,7 @@ namespace ComplexMathematics
 
         public static Complex Gamma(Complex value)
         {
-            var result = value * Exp(EulersConstant * value);
+            var result = value * Exp(EulersConstant.Real * value);
             for (int k = 1; k < 1000; k++)
                 result *= (1 + value / k) * Exp(-value / k);
             return 1 / result;
@@ -210,7 +219,7 @@ namespace ComplexMathematics
             if (value == Zero) return -0.5;
             if (value == RealOne) return new(double.PositiveInfinity, 0);
             if (value._real < 0.5)
-                return Pow(2, value) * Pow(PI, value - 1) * Sin(0.5 * PI * value) * Gamma(1 - value) * Zeta(1 - value);
+                return Pow(2, value) * Pow(PI, value - 1) * Sin(0.5 * Math.PI * value) * Gamma(1 - value) * Zeta(1 - value);
             var sum = Zero;
             for (int k = 1; k < 1000; k++)
                 sum += k * (k + 1) / 2 * ((2 * k + 3 + value) / Pow(k + 1, value + 2) - (2 * k - 1 - value) / Pow(k, value + 2));
@@ -343,6 +352,11 @@ namespace ComplexMathematics
             return new Complex(left._real + right._real, left._imaginary + right._imaginary);
         }
 
+        public static Complex operator ++(Complex value)
+        {
+            return new(value._real + 1, value._imaginary);
+        }
+
         public static Complex operator -(Complex value)
         {
             return new(-value._real, -value._imaginary);
@@ -353,11 +367,26 @@ namespace ComplexMathematics
             return new(left._real - right._real, left._imaginary - right._imaginary);
         }
 
+        public static Complex operator --(Complex value)
+        {
+            return new(value._real - 1, value._imaginary);
+        }
+
         public static Complex operator *(Complex left, Complex right)
         {
             var real = left._real * right._real - left._imaginary * right._imaginary;
             var imaginary = left._imaginary * right._real + left._real * right._imaginary;
             return new(real, imaginary);
+        }
+
+        public static Complex operator *(Complex left, double right)
+        {
+            return new(left._real * right, left._imaginary * right);
+        }
+
+        public static Complex operator *(double left, Complex right)
+        {
+            return new(left * right._real, left * right._real);
         }
 
         public static Complex operator /(Complex left, Complex right)
@@ -371,14 +400,50 @@ namespace ComplexMathematics
             return new((left._imaginary + left._real * num2) / (right._imaginary + right._real * num2), (-left._real + left._imaginary * num2) / (right._imaginary + right._real * num2));
         }
 
+        public static Complex operator /(Complex left, double right)
+        {
+            return new(left._real / right, left._imaginary / right);
+        }
+
+        public static Complex operator /(double left, Complex right)
+        {
+            if (Math.Abs(right._imaginary) < Math.Abs(right._real))
+            {
+                var num = right._imaginary / right._real;
+                return new(left / (right._real + right._imaginary * num), -left * num / (right._real + right._imaginary * num));
+            }
+            var num2 = right._real / right._imaginary;
+            return new(left * num2 / (right._imaginary + right._real * num2), -left / (right._imaginary + right._real * num2));
+        }
+
         public static bool operator ==(Complex left, Complex right)
         {
             return left._real == right._real && left._imaginary == right._imaginary;
         }
 
+        public static bool operator ==(double left, Complex right)
+        {
+            return left == right._real && right._imaginary == 0;
+        }
+
+        public static bool operator ==(Complex left, double right)
+        {
+            return left._real == right && left._imaginary == 0;
+        }
+
         public static bool operator !=(Complex left, Complex right)
         {
-            return left._real != right._real && left._imaginary != right._imaginary;
+            return left._real != right._real || left._imaginary != right._imaginary;
+        }
+
+        public static bool operator !=(double left, Complex right)
+        {
+            return left != right._real || right._imaginary != 0;
+        }
+
+        public static bool operator !=(Complex left, double right)
+        {
+            return left._real != right || left._imaginary != 0;
         }
         #endregion
 
