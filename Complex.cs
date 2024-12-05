@@ -203,7 +203,7 @@ namespace ComplexMathematics
 
         public static Complex Gamma(Complex value)
         {
-            var result = value * Exp(EulersConstant.Real * value);
+            var result = value * Exp(EulersConstant * value);
             for (int k = 1; k < 1000; k++)
                 result *= (1 + value / k) * Exp(-value / k);
             return 1 / result;
@@ -403,17 +403,6 @@ namespace ComplexMathematics
         public static Complex operator /(Complex left, double right)
         {
             return new(left._real / right, left._imaginary / right);
-        }
-
-        public static Complex operator /(double left, Complex right)
-        {
-            if (Math.Abs(right._imaginary) < Math.Abs(right._real))
-            {
-                var num = right._imaginary / right._real;
-                return new(left / (right._real + right._imaginary * num), -left * num / (right._real + right._imaginary * num));
-            }
-            var num2 = right._real / right._imaginary;
-            return new(left * num2 / (right._imaginary + right._real * num2), -left / (right._imaginary + right._real * num2));
         }
 
         public static bool operator ==(Complex left, Complex right)

@@ -64,9 +64,8 @@
         {
             var sum = Complex.Zero;
             var points = curve.EvaluatePoints(pointsCount + 1);
-            var result = curve.ApplyFunction(function).EvaluatePoints(pointsCount + 1);
             for (int point = 0; point < pointsCount; point++)
-                sum += result[point] * (points[point + 1] - points[point]);
+                sum += function(points[point]) * (points[point + 1] - points[point]);
             return sum;
         }
 
@@ -77,10 +76,8 @@
                 var sum = Complex.Zero;
                 var points = curve.EvaluatePointsAsync(pointsCount + 1);
                 points.Wait();
-                var result = curve.ApplyFunction(function).EvaluatePointsAsync(pointsCount + 1);
-                result.Wait();
                 for (int point = 0; point < pointsCount; point++)
-                    sum += result.Result[point] * (points.Result[point + 1] - points.Result[point]);
+                    sum += function(points.Result[point]) * (points.Result[point + 1] - points.Result[point]);
                 return sum;
             });
             job.Start();
